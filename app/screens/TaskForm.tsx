@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -17,7 +17,7 @@ import { useTasks } from "../context/TaskContext";
 type TaskFormProps = NativeStackScreenProps<RootStackParamList, "TaskForm">;
 
 const TaskForm: React.FC<TaskFormProps> = ({ route, navigation }) => {
-  const { tasks, fetchTasks } = useTasks();
+  const { fetchTasks } = useTasks();
   const { taskId } = route.params;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -40,21 +40,24 @@ const TaskForm: React.FC<TaskFormProps> = ({ route, navigation }) => {
     }
   }, [taskId]);
 
-  const fetchTask = async (taskId: string) => {
-    showLoader();
-    try {
-      const task = await getTaskById(taskId);
-      setTitle(task.title);
-      setDescription(task.description);
-      setStatus(task.status);
-    } catch (error) {
-      console.error("Error fetching task:", error);
-    } finally {
-      hideLoader();
-    }
-  };
+  const fetchTask = useCallback(
+    async (taskId: string) => {
+      showLoader();
+      try {
+        const task = await getTaskById(taskId);
+        setTitle(task.title);
+        setDescription(task.description);
+        setStatus(task.status);
+      } catch (error) {
+        console.error("Error fetching task:", error);
+      } finally {
+        hideLoader();
+      }
+    },
+    [showLoader, hideLoader]
+  );
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     let valid = true;
     if (title.trim().length < 1) {
       setTitleError("Title must be at least 1 character long.");
@@ -69,9 +72,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ route, navigation }) => {
       setDescriptionError("");
     }
     return valid;
-  };
+  }, [title, description]);
 
-  const handleSaveTask = async () => {
+  const handleSaveTask = useCallback(async () => {
     if (!validateForm()) return;
 
     showLoader();
@@ -89,7 +92,17 @@ const TaskForm: React.FC<TaskFormProps> = ({ route, navigation }) => {
     } finally {
       hideLoader();
     }
-  };
+  }, [
+    title,
+    description,
+    status,
+    taskId,
+    validateForm,
+    fetchTasks,
+    showLoader,
+    hideLoader,
+    navigation,
+  ]);
 
   if (loading) {
     return (

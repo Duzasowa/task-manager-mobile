@@ -3,29 +3,66 @@ import { Task } from "./types";
 
 const API_URL = "http://localhost:5000/tasks";
 
+const apiClient = axios.create({
+  baseURL: API_URL,
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("API error:", error);
+    return Promise.reject(error);
+  }
+);
+
 export const createTask = async (taskData: Omit<Task, "id">): Promise<Task> => {
-  const response = await axios.post<Task>(API_URL, taskData);
-  return response.data;
+  try {
+    const response = await apiClient.post<Task>("/", taskData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create task:", error);
+    throw error;
+  }
 };
 
 export const getTasks = async (): Promise<Task[]> => {
-  const response = await axios.get<Task[]>(API_URL);
-  return response.data;
+  try {
+    const response = await apiClient.get<Task[]>("/");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get tasks:", error);
+    throw error;
+  }
 };
 
 export const getTaskById = async (id: string): Promise<Task> => {
-  const response = await axios.get<Task>(`${API_URL}/${id}`);
-  return response.data;
+  try {
+    const response = await apiClient.get<Task>(`/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get task by ID:", error);
+    throw error;
+  }
 };
 
 export const updateTask = async (
   id: string,
   taskData: Partial<Omit<Task, "id">>
 ): Promise<Task> => {
-  const response = await axios.put<Task>(`${API_URL}/${id}`, taskData);
-  return response.data;
+  try {
+    const response = await apiClient.put<Task>(`/${id}`, taskData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    throw error;
+  }
 };
 
 export const deleteTask = async (id: string): Promise<void> => {
-  await axios.delete(`${API_URL}/${id}`);
+  try {
+    await apiClient.delete(`/${id}`);
+  } catch (error) {
+    console.error("Failed to delete task:", error);
+    throw error;
+  }
 };

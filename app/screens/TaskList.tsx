@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { Task, RootStackParamList } from "../types";
 import { useTasks } from "../context/TaskContext";
-import { deleteTask, updateTask } from "../apiService";
+import { updateTask } from "../apiService";
 import useLoader from "../hooks/useLoader";
 
 type TaskListNavigationProp = NativeStackNavigationProp<
@@ -19,90 +19,90 @@ type TaskListNavigationProp = NativeStackNavigationProp<
   "TaskList"
 >;
 
+const FilterButton: React.FC<{
+  filter: string;
+  currentFilter: string;
+  onPress: (filter: string) => void;
+}> = React.memo(({ filter, currentFilter, onPress }) => (
+  <TouchableOpacity
+    style={[
+      styles.filterButton,
+      filter === currentFilter && styles.filterButtonActive,
+    ]}
+    onPress={() => onPress(filter)}
+  >
+    <Text style={styles.filterButtonText}>{filter}</Text>
+  </TouchableOpacity>
+));
+
 const TaskList: React.FC = () => {
   const navigation = useNavigation<TaskListNavigationProp>();
   const { tasks, fetchTasks } = useTasks();
   const { loading, showLoader, hideLoader } = useLoader();
-  const [filter, setFilter] = React.useState<
+  const [filter, setFilter] = useState<
     "ALL" | "PENDING" | "IN_PROGRESS" | "COMPLETED"
   >("ALL");
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchTasks();
   }, []);
+
+  const handleFilterChange = useCallback((newFilter: string) => {
+    setFilter(newFilter as "ALL" | "PENDING" | "IN_PROGRESS" | "COMPLETED");
+  }, []);
+
+  const handleMarkCompleted = useCallback(
+    async (id: string) => {
+      showLoader();
+      try {
+        await updateTask(id, { status: "COMPLETED" });
+        await fetchTasks();
+      } catch (error) {
+        console.error("Error marking task as completed:", error);
+      } finally {
+        hideLoader();
+      }
+    },
+    [fetchTasks, showLoader, hideLoader]
+  );
 
   const filteredTasks = tasks.filter((task: Task) => {
     if (filter === "ALL") return true;
     return task.status === filter;
   });
 
-  const handleMarkCompleted = async (id: string) => {
-    showLoader();
-    try {
-      await updateTask(id, { status: "COMPLETED" });
-      await fetchTasks(); // Refresh the task list after marking task as completed
-    } catch (error) {
-      console.error("Error marking task as completed:", error);
-    } finally {
-      hideLoader();
-    }
-  };
-
-  const renderItem = ({ item }: { item: Task }) => (
-    <View style={styles.taskItem}>
-      <Text style={styles.taskTitle}>{item.title}</Text>
-      <Text style={styles.taskDescription}>{item.description}</Text>
-      <Text style={styles.taskStatus}>Status: {item.status}</Text>
-      <Button
-        title="Details"
-        onPress={() => navigation.navigate("TaskDetails", { taskId: item.id })}
-      />
-      <Button
-        title="Mark Completed"
-        onPress={() => handleMarkCompleted(item.id)}
-      />
-    </View>
+  const renderItem = useCallback(
+    ({ item }: { item: Task }) => (
+      <View style={styles.taskItem}>
+        <Text style={styles.taskTitle}>{item.title}</Text>
+        <Text style={styles.taskDescription}>{item.description}</Text>
+        <Text style={styles.taskStatus}>Status: {item.status}</Text>
+        <Button
+          title="Details"
+          onPress={() =>
+            navigation.navigate("TaskDetails", { taskId: item.id })
+          }
+        />
+        <Button
+          title="Mark Completed"
+          onPress={() => handleMarkCompleted(item.id)}
+        />
+      </View>
+    ),
+    [handleMarkCompleted, navigation]
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === "ALL" && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter("ALL")}
-        >
-          <Text style={styles.filterButtonText}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === "PENDING" && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter("PENDING")}
-        >
-          <Text style={styles.filterButtonText}>To Do</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === "IN_PROGRESS" && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter("IN_PROGRESS")}
-        >
-          <Text style={styles.filterButtonText}>In Progress</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === "COMPLETED" && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter("COMPLETED")}
-        >
-          <Text style={styles.filterButtonText}>Completed</Text>
-        </TouchableOpacity>
+        {["ALL", "PENDING", "IN_PROGRESS", "COMPLETED"].map((f) => (
+          <FilterButton
+            key={f}
+            filter={f}
+            currentFilter={filter}
+            onPress={handleFilterChange}
+          />
+        ))}
       </View>
       <FlatList
         data={filteredTasks}
@@ -177,4 +177,5 @@ const styles = StyleSheet.create({
     paddingTop: 30,
   },
 });
+
 export default TaskList;

@@ -78,14 +78,14 @@ export default function App() {
 
 const styles = StyleSheet.create({
   header: {
-    height: 60, // Custom height for the header
-    backgroundColor: "#1b1c1d", // Dark background similar to Steam
+    height: 60,
+    backgroundColor: "#1b1c1d",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
   },
   headerTitle: {
-    color: "#ffffff", // White text color
+    color: "#ffffff",
     fontSize: 20,
     fontWeight: "bold",
   },
