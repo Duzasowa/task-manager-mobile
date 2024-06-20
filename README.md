@@ -4,9 +4,9 @@ This is a mobile application for managing tasks (to-do list) built with React Na
 
 ## Screenshots
 
-![Task List](assets/images/task-list.png)
+![Task List](assets/images/tasklist.png)
 ![Task Form](assets/images/taskform.png)
-![Task Details](assets/images/task-details.png)
+![Task Details](assets/images/taskdetails.png)
 
 ## Features
 
