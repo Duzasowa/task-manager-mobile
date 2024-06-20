@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { styles } from "../styles";
-
-type RootStackParamList = {
-  TaskForm: { taskId?: string };
-  TaskList: undefined;
-  TaskDetails: { taskId: string };
-};
+import { RootStackParamList } from "../types";
+import { getTaskById, deleteTask } from "../apiService";
+import useLoader from "../hooks/useLoader";
+import { Ionicons } from "@expo/vector-icons";
+import { useTasks } from "../context/TaskContext";
 
 type TaskDetailsProps = NativeStackScreenProps<
   RootStackParamList,
@@ -18,41 +23,113 @@ interface Task {
   id: string;
   title: string;
   description: string;
-  status: string;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
 }
 
 const TaskDetails: React.FC<TaskDetailsProps> = ({ route, navigation }) => {
   const { taskId } = route.params;
+  const { tasks, fetchTasks } = useTasks();
   const [task, setTask] = useState<Task | null>(null);
+  const { loading, showLoader, hideLoader } = useLoader();
 
   useEffect(() => {
-    // Логіка для отримання деталей завдання
-    const fetchedTask: Task = {
-      id: taskId,
-      title: "Task 1",
-      description: "Description 1",
-      status: "Pending",
+    const fetchTask = async () => {
+      showLoader();
+      try {
+        const fetchedTask = await getTaskById(taskId);
+        setTask(fetchedTask);
+      } catch (error) {
+        console.error("Error fetching task:", error);
+      } finally {
+        hideLoader();
+      }
     };
-    setTask(fetchedTask);
-  }, [taskId]);
+    fetchTask();
+  }, [taskId, navigation]);
 
-  if (!task) {
-    return <Text style={styles.title}>Loading...</Text>;
+  const handleDeleteTask = async () => {
+    showLoader();
+    try {
+      await deleteTask(taskId);
+      fetchTasks();
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  if (loading || !task) {
+    return (
+      <View style={customStyles.loaderContainer}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{task.title}</Text>
       <Text style={styles.description}>{task.description}</Text>
-      <Text style={styles.description}>Status: {task.status}</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("TaskForm", { taskId })}
-      >
-        <Text style={styles.buttonText}>Edit Task</Text>
-      </TouchableOpacity>
+      <Text style={styles.status}>Status: {task.status}</Text>
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Edit Task"
+          onPress={() => navigation.navigate("TaskForm", { taskId: task.id })}
+        />
+        <Button title="Delete Task" onPress={handleDeleteTask} />
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#1b1c1d",
+  },
+  title: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  description: {
+    color: "#b0b0b0",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  status: {
+    color: "#d0d0d0",
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  button: {
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    width: "48%",
+  },
+  buttonText: {
+    color: "#ffffff",
+    textAlign: "center",
+  },
+});
+
+const customStyles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+});
 
 export default TaskDetails;

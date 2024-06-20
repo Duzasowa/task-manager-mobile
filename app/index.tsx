@@ -1,12 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import TaskList from "./screens/TaskList";
 import TaskForm from "./screens/TaskForm";
 import TaskDetails from "./screens/TaskDetails";
-import NotFoundScreen from "./screens/NotFoundScreen";
 import { Ionicons } from "@expo/vector-icons";
+import { TaskProvider } from "./context/TaskContext";
 
 type RootStackParamList = {
   TaskList: undefined;
@@ -44,36 +44,35 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({ title, canGoBack }) => {
 
 export default function App() {
   return (
-    <Stack.Navigator initialRouteName="TaskList">
-      <Stack.Screen
-        name="TaskList"
-        component={TaskList}
-        options={{
-          header: () => <CustomHeader title="Task List" />,
-        }}
-      />
-      <Stack.Screen
-        name="TaskForm"
-        component={TaskForm}
-        options={{
-          header: () => <CustomHeader title="Task Form" canGoBack />,
-        }}
-      />
-      <Stack.Screen
-        name="TaskDetails"
-        component={TaskDetails}
-        options={{
-          header: () => <CustomHeader title="Task Details" canGoBack />,
-        }}
-      />
-      <Stack.Screen
-        name="NotFound"
-        component={NotFoundScreen}
-        options={{
-          header: () => <CustomHeader title="Not Found" canGoBack />,
-        }}
-      />
-    </Stack.Navigator>
+    <TaskProvider>
+      <Stack.Navigator
+        initialRouteName="TaskList"
+        screenOptions={({ navigation, route }) => ({
+          header: (props) => (
+            <CustomHeader
+              title={props.options.title ?? "Task Manager"}
+              canGoBack={navigation.canGoBack()}
+            />
+          ),
+        })}
+      >
+        <Stack.Screen
+          name="TaskList"
+          component={TaskList}
+          options={{ title: "Task List" }}
+        />
+        <Stack.Screen
+          name="TaskForm"
+          component={TaskForm}
+          options={{ title: "Task Form" }}
+        />
+        <Stack.Screen
+          name="TaskDetails"
+          component={TaskDetails}
+          options={{ title: "Task Details" }}
+        />
+      </Stack.Navigator>
+    </TaskProvider>
   );
 }
 
